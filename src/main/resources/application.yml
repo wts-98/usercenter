@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: user-center
+    # dataSource Config
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://192.168.17.129:3306/wts
+    username: root
+    password: root
+server:
+  port: 8080
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+
