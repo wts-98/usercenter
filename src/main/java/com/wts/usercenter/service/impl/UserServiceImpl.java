@@ -7,13 +7,15 @@ import com.wts.usercenter.service.UserService;
 import com.wts.usercenter.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.wts.usercenter.contant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户服务实现类
@@ -30,9 +32,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      *
-     * 加盐
+     * 盐值，混淆密码
      */
     public static final String SALT = "wts";
+
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -66,7 +69,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return -1;
         }
         //2.加密密码用MD5
-        final String SALT = "wts";
         String encryptPassword = DigestUtils.md5DigestAsHex(("abcd" + "mypassword").getBytes());
         //3.向数据库插入用户数据
         User user = new User();
@@ -80,7 +82,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public User doLogin(String userAccount, String userPassword) {
+    public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         //1.校验不为空
         if (StringUtils.isAnyBlank(userAccount,userPassword)){
             return null;
@@ -112,9 +114,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.info("user login failed,userAccount cannot match userPassword");
             return null;
         }
-        //3.记录用户的登录态
+        //3.用户脱敏
+        User safetyUser = getSafetyUser(user);
+        //4.记录用户的登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE,safetyUser);
+        return safetyUser;
+    }
 
-        return user;
+    /**
+     * 用户脱敏
+     * @param originUser
+     * @return
+     */
+    @Override
+    public User getSafetyUser(User originUser){
+        if (originUser == null){
+            return null;
+        }
+        //3.用户脱敏--为了返回特定的数据，不让前端直接查看到信息
+        User safetyUser = new User();
+        safetyUser.setId(originUser.getId());
+        safetyUser.setUserName(originUser.getUserName());
+        safetyUser.setUserAccount(originUser.getUserAccount());
+        safetyUser.setAvatarUrl(originUser.getAvatarUrl());
+        safetyUser.setGender(originUser.getGender());
+        //safetyUser.setUserPassword("");不需要让前端知道密码
+        safetyUser.setPhone(originUser.getPhone());
+        safetyUser.setEmail(originUser.getEmail());
+        safetyUser.setUserRole(originUser.getUserRole());
+        safetyUser.setUserStatus(originUser.getUserStatus());
+        safetyUser.setCreateTime(originUser.getCreateTime());
+
+        return safetyUser;
+
     }
 }
 

@@ -3,6 +3,8 @@ package com.wts.usercenter.service;
 import com.wts.usercenter.model.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * 用户服务
  *
@@ -26,7 +28,16 @@ public interface UserService extends IService<User> {
      *
      * @param userAccount
      * @param userPassword
-     * @return 用户列表
+     * @param request
+     * @return 脱敏后的用户参数
      */
-    User doLogin(String userAccount, String userPassword);
+    User userLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+    /**
+     * 用户脱敏
+     *
+     * @param originUser
+     * @return
+     */
+    User getSafetyUser(User originUser);
 }

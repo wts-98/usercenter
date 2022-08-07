@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan("com.wts.usercenter.mapper")
 public class UserCenterApplication {
 
+
     public static void main(String[] args) {
         SpringApplication.run(UserCenterApplication.class, args);
     }

@@ -7,9 +7,17 @@ spring:
     url: jdbc:mysql://192.168.17.129:3306/wts
     username: root
     password: root
+   #session失效时间
+  session:
+    timeout: 86400
 server:
   port: 8080
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
+  global-config:
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 
