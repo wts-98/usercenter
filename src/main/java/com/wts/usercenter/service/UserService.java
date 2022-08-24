@@ -34,10 +34,18 @@ public interface UserService extends IService<User> {
     User userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
     /**
-     * 用户脱敏
+     * 用户脱敏:脱敏就是将不重要不敏感的消息返回给前端，防止个人信息泄露
      *
      * @param originUser
      * @return
      */
     User getSafetyUser(User originUser);
+
+    /**
+     * 用户退出
+     *
+     * @param request
+     * @return
+     */
+    int userLogout(HttpServletRequest request);
 }

@@ -2,6 +2,8 @@ package com.wts.usercenter.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.wts.usercenter.common.ErrorCode;
+import com.wts.usercenter.exception.BusinessException;
 import com.wts.usercenter.model.User;
 import com.wts.usercenter.service.UserService;
 import com.wts.usercenter.mapper.UserMapper;
@@ -41,32 +43,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         //1.校验不为空
         if (StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"参数为空");
         }
         //账户不小于4
         if (userAccount.length() < 4){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户账号过短");
         }
         //密码不小于8位
         if (userPassword.length() < 8 || checkPassword.length() < 8){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户密码过短");
         }
         //账户不包含特殊字符
         String validPattern="[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？ ]";
         Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
         if (matcher.find()){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户账户包含特殊字符");
         }
         //密码和校验密码相同
         if (!userPassword.equals(checkPassword)){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"校验密码错误");
         }
         //账户不能重复
         QueryWrapper queryWrapper = new QueryWrapper();
         queryWrapper.eq("userAccount",userAccount);
         long count = this.count(queryWrapper);
         if (count > 0){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户账号重复");
         }
         //2.加密密码用MD5
         String encryptPassword = DigestUtils.md5DigestAsHex(("abcd" + "mypassword").getBytes());
@@ -76,7 +78,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setUserPassword(encryptPassword);
         boolean saveResult = this.save(user);
         if (!saveResult){
-            return -1;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户账号重复");
         }
         return 0;
     }
@@ -85,21 +87,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         //1.校验不为空
         if (StringUtils.isAnyBlank(userAccount,userPassword)){
-            return null;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"参数为空");
         }
         //账户不小于4
         if (userAccount.length() < 4){
-            return null;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户账号过短");
         }
         //密码不小于8位
         if (userPassword.length() < 8){
-            return null;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户密码过短");
         }
         //账户不包含特殊字符
         String validPattern="[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？ ]";
         Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
         if (matcher.find()){
-            return null;
+            throw new BusinessException(ErrorCode.PARANS_ERROR,"用户账户包含特殊字符");
         }
         //2.加密密码用MD5
         String encryptPassword = DigestUtils.md5DigestAsHex(("abcd" + "mypassword").getBytes());
@@ -147,6 +149,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         return safetyUser;
 
+    }
+
+    /**
+     * 用户退出
+     *
+     * @param request
+     * @return
+     */
+    @Override
+    public int userLogout(HttpServletRequest request) {
+        //移除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return 1;
     }
 }
 

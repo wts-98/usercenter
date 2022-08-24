@@ -1,6 +1,10 @@
 package com.wts.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.wts.usercenter.common.BaseResponse;
+import com.wts.usercenter.common.ErrorCode;
+import com.wts.usercenter.common.ResultUtils;
+import com.wts.usercenter.exception.BusinessException;
 import com.wts.usercenter.model.User;
 import com.wts.usercenter.model.request.UserLoginRequest;
 import com.wts.usercenter.model.request.UserRegisterRequest;
@@ -10,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,66 +33,77 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public Long userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
+    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
         if (userRegisterRequest == null){
-            return null;
+            throw new BusinessException(ErrorCode.PARANS_NULL);
         }
-        String userName = userRegisterRequest.getUserName();
+        String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        if (StringUtils.isAnyBlank(userName,userPassword,checkPassword)){
-            return null;
+        if (StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
+            throw new BusinessException(ErrorCode.PARANS_NULL);
         }
-        return userService.userRegister(userName,userPassword,checkPassword);
+        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        return ResultUtils.success(result);
     }
 
-    @PostMapping("/register")
-    public User userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request){
+    @PostMapping("/login")
+    public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request){
         if (userLoginRequest == null){
-            return null;
+            throw new BusinessException(ErrorCode.PARANS_NULL);
         }
-        String userName = userLoginRequest.getUserName();
+        String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        if (StringUtils.isAnyBlank(userName,userPassword)){
-            return null;
+        if (StringUtils.isAnyBlank(userAccount,userPassword)){
+            throw new BusinessException(ErrorCode.PARANS_NULL);
         }
-        return userService.userLogin(userName,userPassword,request);
+        User user = userService.userLogin(userAccount, userPassword, request);
+        return ResultUtils.success(user);
+    }
+    @PostMapping("/logout")
+    public BaseResponse<Integer> userLogout(HttpServletRequest request){
+        if (request == null){
+            throw new BusinessException(ErrorCode.NO_LOGIN);
+        }
+        int result = userService.userLogout(request);
+        return ResultUtils.success(result);
     }
 
     @GetMapping("/search")
-    public List<User> searchUser(String userName,HttpServletRequest request){
-        if (isAdmin(request)){
-            return new ArrayList<>();
+    public BaseResponse<List<User>> searchUser(String userName,HttpServletRequest request){
+        if (!isAdmin(request)){
+            throw new BusinessException(ErrorCode.NO_AUTH);
         }
-
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         if (StringUtils.isNotBlank(userName)){
             queryWrapper.like("userName",userName);
         }
         List<User> userList = userService.list(queryWrapper);
-        return userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        List<User> list = userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        return ResultUtils.success(list);
     }
 
     @GetMapping("/current")
-    public User getCurrentUser(HttpServletRequest request){
+    public BaseResponse<User> getCurrentUser(HttpServletRequest request){
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
         if (currentUser == null){
-            return null;
+            throw new BusinessException(ErrorCode.NO_LOGIN);
         }
         Long userId = currentUser.getId();
         //TODO: 检验用户是否合法
         User user = userService.getById(userId);
-        return userService.getSafetyUser(user);
+        User safetyUser = userService.getSafetyUser(user);
+        return ResultUtils.success(safetyUser);
     }
 
     @PostMapping("/delete")
     public Boolean deleteUser(@RequestBody Long id,HttpServletRequest request){
         if (!isAdmin(request)){
-            return false;
+            throw new BusinessException(ErrorCode.NO_AUTH);
         }
         if (id <= 0){
-            return false;
+            throw new BusinessException(ErrorCode.PARANS_ERROR);
         }
         return userService.removeById(id);
     }
